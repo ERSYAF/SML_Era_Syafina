@@ -7,6 +7,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import mlflow
 import mlflow.sklearn
+import joblib
 
 
 def clean_text_for_token(text):
@@ -59,7 +60,7 @@ if __name__ == "__main__":
 
     experiment_name = "Movie Recommender - Content Based"
     mlflow.set_experiment(experiment_name)
-    mlflow.autolog()  
+    mlflow.autolog()
 
     dataset_path = Path("Membangun_Model/tmdb_movies_processed.csv")
     print(f"MAIN: Akan memuat data dan membuat soup dari: {dataset_path}", flush=True)
@@ -70,6 +71,12 @@ if __name__ == "__main__":
             tfidf = TfidfVectorizer(stop_words='english', ngram_range=(1,2), min_df=3, max_df=0.7)
             tfidf_matrix = tfidf.fit_transform(movie_data_with_soup['soup'].fillna(''))
             cosine_sim_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
+
+            joblib.dump(tfidf, "tfidf_vectorizer.pkl")
+            np.savez_compressed("cosine_matrix.npz", cosine_sim_matrix=cosine_sim_matrix)
+
+            mlflow.log_artifact("tfidf_vectorizer.pkl")
+            mlflow.log_artifact("cosine_matrix.npz")
 
             indices = pd.Series(movie_data_with_soup.index, index=movie_data_with_soup['title']).drop_duplicates()
             test_movie_title = movie_data_with_soup['title'].iloc[0]
