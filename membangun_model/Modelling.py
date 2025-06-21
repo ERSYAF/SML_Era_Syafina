@@ -56,17 +56,26 @@ def get_recommendations(movie_title, cosine_sim_matrix_input, data, movie_indice
     return data['title'].iloc[movie_indices_output]
 
 if __name__ == "__main__":
+    import argparse
     print(">>> BLOK __main__ di Modelling.py TERPANGGIL <<<", flush=True)
 
+    parser = argparse.ArgumentParser(description="Content-based Movie Recommender Training with MLflow")
+    parser.add_argument('--dataset_path', type=str, default="Membangun_Model/tmdb_movies_processed.csv", help='Path to the processed movie dataset CSV')
+    args = parser.parse_args()
+
+    # Inisialisasi MLflow experiment (semua run akan dicatat di experiment ini)
     experiment_name = "Movie Recommender - Content Based"
     mlflow.set_experiment(experiment_name)
+
+    # Aktifkan autologging untuk scikit-learn (parameter, model, dsb akan otomatis dicatat)
     mlflow.autolog()
 
-    dataset_path = Path("Membangun_Model/tmdb_movies_processed.csv")
+    dataset_path = Path(args.dataset_path)
     print(f"MAIN: Akan memuat data dan membuat soup dari: {dataset_path}", flush=True)
     movie_data_with_soup = load_data_and_generate_soup(dataset_path)
 
     if movie_data_with_soup is not None and not movie_data_with_soup.empty:
+        # Mulai MLflow run (semua parameter, artifact, dsb akan dicatat di run ini)
         with mlflow.start_run(run_name="ContentBasedRecommender_Run1") as run:
             tfidf = TfidfVectorizer(stop_words='english', ngram_range=(1,2), min_df=3, max_df=0.7)
             tfidf_matrix = tfidf.fit_transform(movie_data_with_soup['soup'].fillna(''))
