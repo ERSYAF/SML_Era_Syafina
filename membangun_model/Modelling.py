@@ -6,9 +6,7 @@ from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import mlflow
-import mlflow.sklearn
 import joblib
-
 
 def clean_text_for_token(text):
     if isinstance(text, str):
@@ -60,14 +58,11 @@ if __name__ == "__main__":
     print(">>> BLOK __main__ di Modelling.py TERPANGGIL <<<", flush=True)
 
     parser = argparse.ArgumentParser(description="Content-based Movie Recommender Training with MLflow")
-    parser.add_argument('--dataset_path', type=str, default="Membangun_Model/tmdb_movies_processed.csv", help='Path to the processed movie dataset CSV')
+    parser.add_argument('--dataset_path', type=str, default="namadataset_raw/tmdb_movies_processed.csv", help='Path to the processed movie dataset CSV')
     args = parser.parse_args()
 
-    # Inisialisasi MLflow experiment (semua run akan dicatat di experiment ini)
-    experiment_name = "Movie Recommender - Content Based"
-    mlflow.set_experiment(experiment_name)
-
-    # Aktifkan autologging untuk scikit-learn (parameter, model, dsb akan otomatis dicatat)
+    # MLflow settings
+    mlflow.set_experiment("Movie Recommender - Content Based")
     mlflow.autolog()
 
     dataset_path = Path(args.dataset_path)
@@ -75,17 +70,13 @@ if __name__ == "__main__":
     movie_data_with_soup = load_data_and_generate_soup(dataset_path)
 
     if movie_data_with_soup is not None and not movie_data_with_soup.empty:
-        # Mulai MLflow run (semua parameter, artifact, dsb akan dicatat di run ini)
-        with mlflow.start_run(run_name="ContentBasedRecommender_Run1") as run:
+        with mlflow.start_run(run_name="ContentBasedRecommender_Run1"):
             tfidf = TfidfVectorizer(stop_words='english', ngram_range=(1,2), min_df=3, max_df=0.7)
             tfidf_matrix = tfidf.fit_transform(movie_data_with_soup['soup'].fillna(''))
             cosine_sim_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
             joblib.dump(tfidf, "tfidf_vectorizer.pkl")
             np.savez_compressed("cosine_matrix.npz", cosine_sim_matrix=cosine_sim_matrix)
-
-            mlflow.log_artifact("tfidf_vectorizer.pkl")
-            mlflow.log_artifact("cosine_matrix.npz")
 
             indices = pd.Series(movie_data_with_soup.index, index=movie_data_with_soup['title']).drop_duplicates()
             test_movie_title = movie_data_with_soup['title'].iloc[0]
